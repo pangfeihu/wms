@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyl.wms.mapper.StockMapper">
+    
+    <resultMap type="Stock" id="StockResult">
+        <result property="id" column="id"/>
+        <result property="warehouseId" column="warehouse_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="prodDate" column="prod_date"/>
+        <result property="maxQuantity" column="max_quantity"/>
+        <result property="aveQuantity" column="ave_quantity"/>
+        <result property="minQuantity" column="min_quantity"/>
+        <result property="remark" column="remark"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectStockVo">
+        select id, warehouse_id, goods_id, prod_date, max_quantity, ave_quantity, min_quantity, remark, del_flag, create_by, create_time, update_by, update_time   from wms_stock
+    </sql>
+
+    <select id="selectByEntity" parameterType="Stock" resultMap="StockResult">
+        <include refid="selectStockVo"/>
+        <where>  
+            <if test="warehouseId != null "> and warehouse_id = #{warehouseId}</if>
+            <if test="goodsId != null "> and goods_id = #{goodsId}</if>
+            <if test="prodDate != null "> and prod_date = #{prodDate}</if>
+            <if test="maxQuantity != null "> and max_quantity = #{maxQuantity}</if>
+            <if test="aveQuantity != null "> and ave_quantity = #{aveQuantity}</if>
+            <if test="minQuantity != null "> and min_quantity = #{minQuantity}</if>
+        </where>
+    </select>
+
+    <update id="updateDelFlagByIds">
+        update wms_stock set del_flag=1
+        <where>
+            id in <foreach collection="ids" open="(" item="it" close=")" separator=",">#{it}</foreach>
+        </where>
+    </update>
+</mapper>
