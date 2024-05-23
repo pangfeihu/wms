@@ -67,27 +67,4 @@ public class StockController extends BaseController {
         return ResponseEntity.ok(service.selectById(id));
     }
 
-    @ApiOperation("新增库存")
-    @PreAuthorize("@ss.hasPermi('wms:stock:add')")
-    @Log(title = "库存", businessType = BusinessType.INSERT)
-    @PostMapping
-    public ResponseEntity<Integer> add(@RequestBody Stock stock) {
-        return ResponseEntity.ok(service.insert(stock));
-    }
-
-    @ApiOperation("修改库存")
-    @PreAuthorize("@ss.hasPermi('wms:stock:edit')")
-    @Log(title = "库存", businessType = BusinessType.UPDATE)
-    @PutMapping
-    public ResponseEntity<Integer> edit(@RequestBody Stock stock) {
-        return ResponseEntity.ok(service.update(stock));
-    }
-
-    @ApiOperation("删除库存")
-    @PreAuthorize("@ss.hasPermi('wms:stock:remove')")
-    @Log(title = "库存", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{ids}")
-    public ResponseEntity<Integer> remove(@PathVariable Long[] ids) {
-        return ResponseEntity.ok(service.deleteByIds(ids));
-    }
 }
