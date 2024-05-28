@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cyl.wms.mapper.WmInventoryMapper">
+    <insert id="insertOrUpdateInventory" >
+        INSERT INTO `wm_inventory` (
+            `goods_id`,
+            `unit_id`,
+            `warehouse_id`,
+            `quantity`,
+            `remark`,
+            `del_flag`,
+            `create_by`,
+            `create_time`,
+            `update_by`,
+            `update_time`
+        )
+        VALUES (
+                   #{wmInventory.goodsId},
+                   #{wmInventory.unitId},
+                   #{wmInventory.warehouseId},
+                   #{wmInventory.quantity},
+                   #{wmInventory.remark},
+                   #{wmInventory.delFlag},
+                   #{wmInventory.createBy},
+                   #{wmInventory.createTime},
+                   #{wmInventory.updateBy},
+                   #{wmInventory.updateTime}
+               )
+            ON DUPLICATE KEY UPDATE
+                                 `quantity` = `quantity` + #{wmInventory.quantity},
+                                 `update_by` = #{wmInventory.updateBy},
+                                 `update_time` = NOW(3)
+    </insert>
+    <update id="decreaseInventory">
+        UPDATE wm_inventory
+        SET quantity = quantity-#{wmInventory.quantity}
+        WHERE goods_id = #{wmInventory.goodsId}
+          AND unit_id = #{wmInventory.unitId}
+          AND quantity >= #{wmInventory.quantity}
+    </update>
+
+</mapper>

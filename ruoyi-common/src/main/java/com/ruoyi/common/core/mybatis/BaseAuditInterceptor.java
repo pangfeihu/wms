@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //@Component
 @Slf4j
-//@Intercepts(@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}))
+@Intercepts(@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}))
 public class BaseAuditInterceptor implements Interceptor {
     private Map<Class, Method> clazz2Id = new ConcurrentHashMap<>();
     private Method noMethod = BaseAuditInterceptor.class.getMethods()[0];

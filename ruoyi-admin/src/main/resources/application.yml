@@ -133,6 +133,9 @@ mybatis-plus:
     db-config:
       id-type: auto
       update-strategy: ignored
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 pagehelper:
   helperDialect: mysql
   supportMethodsArguments: true

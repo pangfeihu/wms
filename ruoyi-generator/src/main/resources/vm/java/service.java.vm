@@ -91,7 +91,7 @@ public class ${ClassName}Service {
     @Transactional
 #end
     public int insert(${ClassName} ${className}) {
-        ${className}.setDelFlag(0);
+        ${className}.setDelFlag(0L);
 #foreach ($column in $columns)
 #if($column.javaField == 'createTime')
         ${className}.setCreateTime(#if($column.javaType == "Date")new Date()#else${column.javaType}.now()#end);

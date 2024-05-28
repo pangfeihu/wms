@@ -77,7 +77,9 @@ public class CustomerTransactionService {
      * @return 结果
      */
     public int insert(CustomerTransaction customerTransaction) {
+        // 获取用户信息
         Customer customer = customerService.selectById(Long.valueOf(customerTransaction.getCustomerId()));
+        // 判断用户是否存在
         if (customer == null){
             return 0;
         }

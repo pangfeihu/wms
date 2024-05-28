@@ -1,6 +1,5 @@
 package com.cyl.test.service;
 
-import com.cyl.wms.service.ShipmentOrderService;
 import com.ruoyi.RuoYiApplication;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.junit.Test;
