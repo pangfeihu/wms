@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.cyl.wms.domain.WmGoodsUnit;
+import com.cyl.wms.domain.WmUnit;
 import com.cyl.wms.mapper.WmGoodsUnitMapper;
 import com.cyl.wms.pojo.vo.WmGoodsVO;
 import com.github.pagehelper.PageHelper;
@@ -33,6 +34,8 @@ public class WmGoodsService {
     private WmGoodsUnitService wmGoodsUnitService;
     @Autowired
     private WmGoodsUnitConverService wmGoodsUnitConverService;
+    @Autowired
+    private WmUnitService wmUnitService;
 
     /**
      * 查询商品表
@@ -91,7 +94,32 @@ public class WmGoodsService {
         if (!StringUtils.isEmpty(shelfLifeUnit)) {
             qw.eq("shelf_life_unit", shelfLifeUnit);
         }
-        return wmGoodsMapper.selectList(qw);
+        // 获取商品信息
+        List<WmGoods> wmGoods = wmGoodsMapper.selectList(qw);
+        // 判断是否为空
+        if(CollUtil.isEmpty(wmGoods)) {
+            return new ArrayList<>();
+        }
+        // 查询所有单位信息
+        Map<Long, WmUnit> unitMap = wmUnitService.selectMap();
+        // 循环处理
+        for (WmGoods wmGood : wmGoods) {
+            // 查询明细信息
+            List<WmGoodsUnit> wmGoodsUnits = wmGoodsUnitService.selectByGoodsId(wmGood.getId());
+            // 查询明细单位信息
+            wmGoodsUnits.forEach(line -> {
+                // 获取单位信息
+                WmUnit wmUnit = unitMap.get(line.getUnitId());
+                // 不空则添加到商品明细当中
+                if(null != wmUnit) {
+                    line.setUnitName(wmUnit.getUnitName());
+                }
+
+            });
+            wmGood.setDetails(wmGoodsUnits);
+        }
+        // 查询商品规格
+        return wmGoods;
     }
 
     /**

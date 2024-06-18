@@ -33,6 +33,10 @@ public class WmOrderDetail extends BaseAudit {
     @Excel(name = "商品编号")
     private Long goodsId;
 
+    @ApiModelProperty("商品名称")
+    @Excel(name = "商品名称")
+    private String goodsName;
+
     @ApiModelProperty("实际数量")
     @Excel(name = "实际数量")
     private Long realQuantity;
@@ -40,6 +44,10 @@ public class WmOrderDetail extends BaseAudit {
     @ApiModelProperty("单位")
     @Excel(name = "单位")
     private Long unitId;
+
+    @ApiModelProperty("单位名称")
+    @Excel(name = "单位名称")
+    private String unitName;
 
     @ApiModelProperty("类型")
     @Excel(name = "类型")

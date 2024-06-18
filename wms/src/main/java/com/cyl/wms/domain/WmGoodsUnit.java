@@ -2,6 +2,8 @@ package com.cyl.wms.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.ruoyi.common.annotation.Excel;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -24,6 +26,11 @@ public class WmGoodsUnit {
     @ApiModelProperty("单位id")
     @Excel(name = "单位id")
     private Long unitId;
+
+    @ApiModelProperty("单位名称")
+    @Excel(name = "单位名称")
+    @TableField(exist = false)
+    private String unitName;
 
     @ApiModelProperty("商品id")
     @Excel(name = "商品id")

@@ -47,7 +47,8 @@ public class WmGoodsController extends BaseController {
     @PostMapping("/list")
     public ResponseEntity<Page<WmGoods>> list(@RequestBody WmGoodsQuery query, Pageable page) {
         List<WmGoods> list = service.selectList(query, page);
-        return ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page)list).getTotal()));
+        ResponseEntity<Page<WmGoods>> ok = ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page) list).getTotal()));
+        return ok;
     }
 
     @ApiOperation("查询商品表列表")
@@ -55,7 +56,9 @@ public class WmGoodsController extends BaseController {
     @PostMapping("/listDetail")
     public ResponseEntity<Page<WmGoodsVO>> listDetail(@RequestBody WmGoodsQuery query, Pageable page) {
         List<WmGoodsVO> list = service.selectListDetail(query, page);
-        return ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page)list).getTotal()));
+        ResponseEntity<Page<WmGoodsVO>> ok = ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page) list).getTotal()));
+
+        return ok;
     }
 
     @ApiOperation("导出商品表列表")

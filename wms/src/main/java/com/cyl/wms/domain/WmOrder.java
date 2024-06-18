@@ -1,6 +1,7 @@
 package com.cyl.wms.domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -66,6 +67,10 @@ public class WmOrder extends BaseAudit {
 
     @ApiModelProperty("删除标识")
     private Integer delFlag;
+
+    @ApiModelProperty("创建人名称")
+    @Excel(name = "创建人名称")
+    private String createName;
 
     @ApiModelProperty("订单明细")
     @TableField(exist = false)

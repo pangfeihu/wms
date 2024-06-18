@@ -46,8 +46,11 @@ public class CustomerController extends BaseController {
     @PreAuthorize("@ss.hasPermi('wms:customer:list')")
     @PostMapping("/list")
     public ResponseEntity<Page<Customer>> list(@RequestBody CustomerQuery query, Pageable page) {
+        int pageNumber = page.getPageNumber();
         List<Customer> list = service.selectList(query, page);
-        return ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page)list).getTotal()));
+        System.out.println(pageNumber);
+        return ResponseEntity.ok(new PageImpl<>(list, page, ((com.github.pagehelper.Page) list).getTotal()));
+
     }
 
     @ApiOperation("导出客户列表")

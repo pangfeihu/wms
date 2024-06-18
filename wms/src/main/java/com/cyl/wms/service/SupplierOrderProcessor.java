@@ -4,7 +4,9 @@ import com.cyl.wms.domain.WmInventory;
 import com.cyl.wms.domain.WmOrder;
 import com.cyl.wms.domain.WmOrderDetail;
 import com.cyl.wms.domain.entity.Supplier;
+import com.cyl.wms.domain.entity.SupplierTransaction;
 import com.cyl.wms.enums.OrderType;
+import com.cyl.wms.enums.Transaction;
 import com.cyl.wms.enums.UserType;
 import com.cyl.wms.factory.OrderProcessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ public class SupplierOrderProcessor implements IOrderProcessor {
 
     @Autowired
     private SupplierService supplierService;
+
+    @Autowired
+    private SupplierTransactionService supplierTransactionService;
 
     @Override
     public void create(WmOrder order) {
@@ -41,16 +46,32 @@ public class SupplierOrderProcessor implements IOrderProcessor {
         List<WmInventory> wmInventories = wmInventoryService.converByOrder(order.getWarehouseId(),order.getDetails());
         // 增加库存
         wmInventoryService.placing(wmInventories);
+        // 构建账单
+        SupplierTransaction accountOrder = supplierTransactionService.builder(order.getId(),order.getUserId(),order.getPayableAmount(),null,null);
         // 采购订单
         if(OrderType.SUPPLIER_IN_ORDER.getCode().equals(order.getOrderType())) {
             // 增加库存
             wmInventoryService.placing(wmInventories);
+            // 设置附言
+            accountOrder.setRemark(String.format("采购订单:%s,订货款.",order.getId()));
+            // 设置为应付
+            accountOrder.setTransactionType(Transaction.EXIT.getCode());
+            // 记录资金流水
+            supplierTransactionService.insert(accountOrder);
             return;
         }
         // 退货订单
         if(OrderType.SUPPLIER_OUT_ORDER.getCode().equals(order.getOrderType())) {
+            // 设置附言
+            accountOrder.setRemark(String.format("退货订单:%s,退货款.",order.getId()));
+            // 设置为应收
+            accountOrder.setTransactionType(Transaction.ENTER.getCode());
+
             // 减少库存
             wmInventoryService.take(wmInventories);
+
+            // 记录资金流水
+            supplierTransactionService.insert(accountOrder);
             return;
         }
         throw new RuntimeException("系统错误");

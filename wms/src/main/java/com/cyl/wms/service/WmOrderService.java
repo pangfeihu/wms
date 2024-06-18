@@ -18,8 +18,11 @@ import com.cyl.wms.enums.OrderStatus;
 import com.cyl.wms.factory.OrderProcessorFactory;
 import com.cyl.wms.mapper.WmGoodsUnitMapper;
 import com.cyl.wms.mapper.WmInventoryMapper;
+import com.cyl.wms.pojo.vo.WmGoodsVO;
 import com.cyl.wms.pojo.vo.WmOrderVO;
 import com.github.pagehelper.PageHelper;
+import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.system.service.ISysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.apache.commons.lang3.StringUtils;
@@ -47,23 +50,15 @@ public class WmOrderService {
     private WmGoodsUnitService wmGoodsUnitService;
 
     @Autowired
-    private WmGoodsUnitMapper wmGoodsUnitMapper;
-
-    @Autowired
     private WmOrderDetailService wmOrderDetailService;
 
-    @Autowired
-    private WmInventoryConvert wmInventoryConvert;
-
-    @Autowired
-    private WmInventoryMapper wmInventoryMapper;
-
-    @Autowired
-    private WmInventoryService wmInventoryService;
     @Autowired
     private WmGoodsService wmGoodsService;
     @Autowired
     private WmWarehouseService wmWarehouseService;
+
+    @Autowired
+    private ISysUserService userService;
 
     /**
      * 查询订单
@@ -120,7 +115,17 @@ public class WmOrderService {
         if (orderStatus != null) {
             qw.eq("order_status", orderStatus);
         }
-        return wmOrderMapper.selectList(qw);
+        // 查询订单集合
+        List<WmOrder> wmOrders = wmOrderMapper.selectList(qw);
+        // 获取订单明细
+        wmOrders.forEach(line -> {
+            // 获取明细信息
+            List<WmOrderDetail> wmOrderDetails = wmOrderDetailService.selectByOrderId(line.getId());
+            // 添加明细信息
+            line.setDetails(wmOrderDetails);
+        });
+        // 返回数据
+        return wmOrders;
     }
 
     /**
@@ -146,6 +151,8 @@ public class WmOrderService {
         List<Long> goodsIds = details.stream().map(WmOrderDetail::getGoodsId).collect(Collectors.toList());
         // 获取所有商品明细信息
         Map<String, WmGoodsUnit> goodsDetailMap = wmGoodsUnitService.selectMapDetail(goodsIds);
+        // 获取所有商品信息
+        Map<String, WmGoodsVO> goodsMap = wmGoodsService.selectMapDetail(goodsIds);
         // 订单总金额
         BigDecimal payableAmount = new BigDecimal(0);
         // 获取当前系统时间
@@ -162,9 +169,17 @@ public class WmOrderService {
             orderProcessor.calcAmount(detail,goods);
             // 计算订单总金额
             payableAmount = payableAmount.add(detail.getMoney());
+            // 获取商品信息
+            WmGoodsVO wmGoodsVO = goodsMap.get(key);
+            // 设置单位名称
+            detail.setUnitName(wmGoodsVO.getUnitName());
+            // 设置商品名称
+            detail.setGoodsName(wmGoodsVO.getGoodsName());
         }
         // 订单特殊化处理
         orderProcessor.create(wmOrder);
+        // 获取用户信息
+        SysUser sysUser = userService.selectUserById(wmOrder.getCreateBy());
         // 设置订单属性
         wmOrder.setWarehouseName(wmWarehouse.getWarehouseName());
         wmOrder.setPayableAmount(payableAmount);
@@ -174,6 +189,7 @@ public class WmOrderService {
         wmOrder.setUpdateBy(wmOrder.getCreateBy());
         wmOrder.setCreateTime(now);
         wmOrder.setUpdateTime(now);
+        wmOrder.setCreateName(sysUser.getNickName());
         // 保存到数据库当中
         int insert = wmOrderMapper.insert(wmOrder);
         // 设置附属信息
@@ -185,6 +201,7 @@ public class WmOrderService {
             detail.setCreateTime(now);
             detail.setUpdateTime(now);
         }
+
         // 保存订单明细
         wmOrderDetailService.saveBatch(details);
         // 返回结果

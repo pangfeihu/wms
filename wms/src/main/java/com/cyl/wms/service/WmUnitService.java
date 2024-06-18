@@ -2,8 +2,13 @@ package com.cyl.wms.service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.github.pagehelper.PageHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +58,22 @@ public class WmUnitService {
             qw.like("unit_name", unitNameLike);
         }
         return wmUnitMapper.selectList(qw);
+    }
+
+    public Map<Long,WmUnit> selectMap() {
+        // 查询所有单位信息
+        List<WmUnit> wmUnits = selectList(new WmUnitQuery(),null);
+        // 进行分组
+        if(CollUtil.isEmpty(wmUnits)){
+            return new HashMap<>();
+        }
+        // 分组
+        return wmUnits.stream()
+                .collect(Collectors.toMap(
+                        row -> row.getId() , // 键映射器，使用id和unitId的组合作为键
+                        unit -> unit,                               // 值映射器，直接使用WmGoodsUnit对象
+                        (existing, replacement) -> existing          // 合并函数，如果有重复的key，选择保留的value
+                ));
     }
 
     /**

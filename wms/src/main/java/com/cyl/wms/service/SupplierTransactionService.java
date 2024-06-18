@@ -3,13 +3,16 @@ package com.cyl.wms.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyl.wms.domain.entity.Supplier;
 import com.cyl.wms.domain.entity.SupplierTransaction;
+import com.cyl.wms.enums.Transaction;
 import com.cyl.wms.mapper.SupplierTransactionMapper;
 import com.cyl.wms.domain.query.SupplierTransactionQuery;
+import com.cyl.wms.utils.TransAmountUtils;
 import com.github.pagehelper.PageHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -75,48 +78,35 @@ public class SupplierTransactionService {
      * @param supplierTransaction 供应商账户流水
      * @return 结果
      */
+    @Transactional
     public int insert(SupplierTransaction supplierTransaction) {
+        // 获取供应商账户
         Supplier supplier = supplierService.selectById(Long.valueOf(supplierTransaction.getSupplierId()));
-        if (supplier == null) {
-            return 0;
+        // 判断供应商账户是否存在
+        if(null == supplier) {
+            throw new RuntimeException("供应商账户不存在");
         }
-        supplierTransaction.setCreateTime(LocalDateTime.now());
-        supplierTransaction.setPreviousBalance(supplier.getPayableAmount());
-        BigDecimal duePay = supplier.getPayableAmount();
-        BigDecimal after = supplier.getPayableAmount();
-        if (SupplierTransaction.ENTER.equals(supplierTransaction.getTransactionType())) {
-            after = duePay.subtract(supplierTransaction.getTransactionAmount());
-        } else if (SupplierTransaction.EXIT.equals(supplierTransaction.getTransactionType())) {
-            after = duePay.add(supplierTransaction.getTransactionAmount());
-        } else if (SupplierTransaction.RECEIPT.equals(supplierTransaction.getTransactionType())) {
-
-            //查询 该入库单是否已经添加
-            LambdaQueryWrapper<SupplierTransaction> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SupplierTransaction::getReceiptOrderId, supplierTransaction.getReceiptOrderId());
-            queryWrapper.orderByDesc(SupplierTransaction::getId);
-            List<SupplierTransaction> supplierTransactions = supplierTransactionMapper.selectList(queryWrapper);
-            if (supplierTransactions.size() > 0) {
-                //更新入库单金额
-                SupplierTransaction supplierTransaction1 = supplierTransactions.get(0);
-                if (supplierTransaction1.getTransactionAmount().compareTo(supplierTransaction.getTransactionAmount()) != 0) {
-                    //发生金额变化
-                    after = duePay.add(supplierTransaction.getTransactionAmount().subtract(supplierTransaction1.getTransactionAmount()));
-                } else {
-                    //无金额变化
-                    return 0;
-                }
-            } else {
-                //新增
-                after = duePay.add(supplierTransaction.getTransactionAmount());
-            }
-
-        }
-        supplierTransaction.setCurrentBalance(after);
-
-        //更新供应商 应付款
-        supplier.setPayableAmount(after);
+        // 本次交易额度
+        BigDecimal transactionAmount = supplierTransaction.getTransactionAmount();
+        // 应付款
+        BigDecimal receivableAmount = supplier.getPayableAmount();
+        // 剩余金额
+        BigDecimal currentBalance = TransAmountUtils.trans(supplierTransaction.getTransactionType(), transactionAmount, receivableAmount);
+        // 获取系统当前时间
+        LocalDateTime now = LocalDateTime.now();
+        // 添加参数
+        supplierTransaction.setCreateTime(now);
+        // 设置上期余额
+        supplierTransaction.setPreviousBalance(receivableAmount);
+        // 设置账户当前余额
+        supplierTransaction.setCurrentBalance(currentBalance);
+        // 设置账户当前余额
+        supplier.setPayableAmount(currentBalance);
+        // 更新供应商 应付款
+        supplier.setPayableAmount(currentBalance);
+        // 更新账户额度
         supplierService.update(supplier);
-
+        // 插入供应商记录
         return supplierTransactionMapper.insert(supplierTransaction);
     }
 
@@ -149,5 +139,17 @@ public class SupplierTransactionService {
     public int deleteById(Long id) {
         Long[] ids = {id};
         return supplierTransactionMapper.updateDelFlagByIds(ids);
+    }
+
+    public SupplierTransaction builder(Long orderId, Long supplierId, BigDecimal amount, String transaction, String remark) {
+        // 创建交易对象
+        SupplierTransaction supplierTransaction = new SupplierTransaction();
+        supplierTransaction.setTransactionCode(String.valueOf(orderId));
+        supplierTransaction.setSupplierId(String.valueOf(supplierId));
+        supplierTransaction.setTransactionType(transaction);
+        supplierTransaction.setTransactionAmount(amount);
+        supplierTransaction.setRemark(remark);
+        supplierTransaction.setReceiptOrderId(orderId.intValue());
+        return supplierTransaction;
     }
 }

@@ -7,7 +7,11 @@ import java.util.Optional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyl.wms.domain.entity.Customer;
+import com.cyl.wms.enums.Transaction;
+import com.cyl.wms.utils.TransAmountUtils;
 import com.github.pagehelper.PageHelper;
+import com.ruoyi.common.annotation.Excel;
+import io.swagger.annotations.ApiModelProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.apache.commons.lang3.StringUtils;
@@ -15,6 +19,7 @@ import org.springframework.stereotype.Service;
 import com.cyl.wms.mapper.CustomerTransactionMapper;
 import com.cyl.wms.domain.entity.CustomerTransaction;
 import com.cyl.wms.domain.query.CustomerTransactionQuery;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 客户账户流水Service业务层处理
@@ -76,50 +81,37 @@ public class CustomerTransactionService {
      * @param customerTransaction 客户账户流水
      * @return 结果
      */
+    @Transactional
     public int insert(CustomerTransaction customerTransaction) {
         // 获取用户信息
         Customer customer = customerService.selectById(Long.valueOf(customerTransaction.getCustomerId()));
         // 判断用户是否存在
         if (customer == null){
-            return 0;
+            throw new RuntimeException("客户账户不存在");
         }
-        customerTransaction.setCreateTime(LocalDateTime.now());
-        customerTransaction.setPreviousBalance(customer.getReceivableAmount());
-        BigDecimal duePay = customer.getReceivableAmount();
-        BigDecimal after = customer.getReceivableAmount();
-        if (CustomerTransaction.ENTER.equals(customerTransaction.getTransactionType())){
-            after = duePay.subtract(customerTransaction.getTransactionAmount());
-        }else if (CustomerTransaction.EXIT.equals(customerTransaction.getTransactionType())){
-            after = duePay.add(customerTransaction.getTransactionAmount());
-        }else if (CustomerTransaction.SHIPMENT.equals(customerTransaction.getTransactionType())){
-            //查询该出库单是否已经添加
-            LambdaQueryWrapper<CustomerTransaction> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(CustomerTransaction::getShipmentOrderId, customerTransaction.getShipmentOrderId());
-            queryWrapper.orderByDesc(CustomerTransaction::getId);
-            List<CustomerTransaction> customerTransactions = customerTransactionMapper.selectList(queryWrapper);
-            if (customerTransactions.size() > 0){
-                //更新出库单金额
-                CustomerTransaction customerTransaction1 = customerTransactions.get(0);
-                if (customerTransaction1.getTransactionAmount().compareTo(customerTransaction.getTransactionAmount()) != 0){
-                    //发生金额变化
-                    after = duePay.add(customerTransaction.getTransactionAmount().subtract(customerTransaction1.getTransactionAmount()));
-                }else {
-                    //无金额变化
-                    return 0;
-                }
-            }else {
-                //新增
-                after = duePay.add(customerTransaction.getTransactionAmount());
-            }
-        }
-        customerTransaction.setCurrentBalance(after);
-
-        //更新客户 应收款
-        customer.setReceivableAmount(after);
+        // 本次交易额度
+        BigDecimal transactionAmount = customerTransaction.getTransactionAmount();
+        // 上次账户额度
+        BigDecimal receivableAmount = customer.getReceivableAmount();
+        // 剩余金额
+        BigDecimal currentBalance = TransAmountUtils.trans(customerTransaction.getTransactionType(), transactionAmount, receivableAmount);
+        // 获取系统当前时间
+        LocalDateTime now = LocalDateTime.now();
+        // 添加参数
+        customerTransaction.setCreateTime(now);
+        // 设置账户当前余额
+        customerTransaction.setCurrentBalance(currentBalance);
+        // 设置账户当前余额
+        customer.setReceivableAmount(currentBalance);
+        // 设置上期余额
+        customerTransaction.setPreviousBalance(receivableAmount);
+        // 更新账户信息
         customerService.update(customer);
-
+        // 插入交易信息
         return customerTransactionMapper.insert(customerTransaction);
     }
+
+
 
     /**
      * 修改客户账户流水
@@ -151,4 +143,20 @@ public class CustomerTransactionService {
         Long[] ids = {id};
         return customerTransactionMapper.updateDelFlagByIds(ids);
     }
+
+
+    public CustomerTransaction builder(Long orderId,Long customerId, BigDecimal amount,String transaction,String remark) {
+        // 创建交易对象
+        CustomerTransaction customerTransaction = new CustomerTransaction();
+        customerTransaction.setTransactionCode(String.valueOf(orderId));
+        customerTransaction.setCustomerId(String.valueOf(customerId));
+        customerTransaction.setTransactionType(transaction);
+        customerTransaction.setTransactionAmount(amount);
+        customerTransaction.setShipmentOrderId(orderId.intValue());
+        customerTransaction.setRemark(remark);
+        return customerTransaction;
+    }
+
+
+
 }
